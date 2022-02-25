@@ -2,22 +2,29 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEditor.Timeline;
+using UnityEngine.Playables;
+using UnityEngine.Timeline;
 
 public class AudioManagement : MonoBehaviour
 {
     
-    [SerializeField]
-    AudioSource[] mainTracks;
 
     [SerializeField]
     AudioSource[] transitionTracks;
 
 
 
+
     [SerializeField]
     int sceneStartPosition = 1;
 
-    
+
+    bool startSceneAllowed = false;
+
+    [SerializeField]
+    float minimumTransitionLength = 0f;
+
 
     int mainTrackPosition = 0;
     int transitionTrackPosition = 0;
@@ -30,20 +37,35 @@ public class AudioManagement : MonoBehaviour
 
     bool autoLoadNextScenes = false;
 
+    [SerializeField]
+    public PlayableDirector timeline;
+
+
+    int timelinePosition = -1;
+
+
+    public static AudioManagement Instance;
+
     // Start is called before the first frame update
     void Awake()
     {
         DontDestroyOnLoad(gameObject);
 
+        Instance = this;
+
         scenePosition = sceneStartPosition;
 
-        mainTracks[mainTrackPosition].Play();
+        //mainTracks[mainTrackPosition].Play();
 
+
+        //autoLoadNextScenes = true;
+        
     }
 
 
     public void LoadFirstScene()
     {
+        
         autoLoadNextScenes = true;
         StartCoroutine(TransitionToNextSceneInArray());
     }
@@ -51,16 +73,17 @@ public class AudioManagement : MonoBehaviour
 
     void Update()
     {
-        if(autoLoadNextScenes && !sceneCurrentlyLoading)
-        if (CheckSongIsAlmostFinished(mainTracks[mainTrackPosition]))
-        {
+        //if(autoLoadNextScenes && !sceneCurrentlyLoading)
+        //if (CheckSongIsAlmostFinished(mainTracks[mainTrackPosition]))
+        //{
 
-            if (mainTrackPosition != mainTracks.Length - 1)
-            {
-                    sceneCurrentlyLoading = true;
-                    StartCoroutine(TransitionToNextSceneInArray());
-            }
-        }
+        //    if (mainTrackPosition != mainTracks.Length - 1)
+        //    {
+        //            sceneCurrentlyLoading = true;
+        //            StartCoroutine(TransitionToNextSceneInArray());
+        //    }
+        //}
+
     }
 
 
@@ -69,6 +92,13 @@ public class AudioManagement : MonoBehaviour
         return track.time >= (track.clip.length - 1f);
     }
 
+
+    public void LoadNextScene()
+    {
+        print("loadnextscene");
+        sceneCurrentlyLoading = true;
+        StartCoroutine(TransitionToNextSceneInArray());
+    }
 
     IEnumerator TransitionToNextSceneInArray()
     {
@@ -79,9 +109,9 @@ public class AudioManagement : MonoBehaviour
         yield return StartCoroutine(StartLoadNextScene(scenePosition, transitionTrackPosition));
 
 
-        mainTrackPosition++;
+        timelinePosition++;
 
-        yield return StartCoroutine(BeginNextScene(scenePosition, mainTrackPosition));
+        yield return StartCoroutine(BeginNextScene(scenePosition, timelinePosition));
 
         scenePosition++;
         transitionTrackPosition++;
@@ -143,18 +173,13 @@ public class AudioManagement : MonoBehaviour
 
 
         
-        loadNextScene = SceneManager.LoadSceneAsync(newSceneBuildIndex, LoadSceneMode.Additive);
 
         unloadPreviousScene = SceneManager.UnloadSceneAsync(SceneManager.GetActiveScene());
 
 
-        loadNextScene.allowSceneActivation = false;
-
-
-
-        while (loadNextScene.progress !>= 0.9)
-        { 
-            if(!transitionTracks[transitionTrack].isPlaying)
+        while (!unloadPreviousScene.isDone)
+        {
+            if (!transitionTracks[transitionTrack].isPlaying)
             {
                 transitionTracks[transitionTrack].Play();
             }
@@ -163,35 +188,81 @@ public class AudioManagement : MonoBehaviour
         }
 
 
+        timeline = null;
+
+
+        loadNextScene = SceneManager.LoadSceneAsync(newSceneBuildIndex, LoadSceneMode.Additive);
+
+
+        //loadNextScene.allowSceneActivation = false; 
+
+        //while (loadNextScene.progress !>= 0.9)
+        //{ 
+        //    if(!transitionTracks[transitionTrack].isPlaying)
+        //    {
+        //        transitionTracks[transitionTrack].Play();
+        //    }
+
+        //    yield return null;
+        //}
+
+        //loadNextScene.allowSceneActivation = true;
+
+        StartCoroutine(AllowSceneStart(minimumTransitionLength));
+
+
+        while (!loadNextScene.isDone || !startSceneAllowed)
+        {
+            if (!transitionTracks[transitionTrack].isPlaying)
+            {
+                transitionTracks[transitionTrack].Play();
+            }
+
+            yield return null;
+        }
+
+        print("startscene" + startSceneAllowed + minimumTransitionLength);
+
 
         while (transitionTracks[transitionTrack].isPlaying)
         {
+
+            print("trans track" + transitionTrack);
             yield return null;
         }
-
-
 
     }
 
+
+    IEnumerator AllowSceneStart(float seconds)
+    {
+        yield return new WaitForSeconds(seconds);
+        startSceneAllowed = true;
+    }
+
+
+
     //Officially starts the next scene - Plays the scene's music and unloads the transition scene
-    IEnumerator BeginNextScene(int newSceneBuildIndex, int nextMainTrack)
+    IEnumerator BeginNextScene(int newSceneBuildIndex, int nextTimeline)
     {
 
-        loadNextScene.allowSceneActivation = true;
+        print("NEW SCENE");
 
-        mainTracks[nextMainTrack].Play();
+        timeline = GameObject.Find("Timeline").GetComponent<PlayableDirector>();
 
-        while (!loadNextScene.isDone)
-        {
-            yield return null;
-        }
+        timeline.Play();
+
+
+
         SceneManager.SetActiveScene(SceneManager.GetSceneByBuildIndex(newSceneBuildIndex));
-
-        
 
         TransitionSceneManager.Instance.FadeIn();
 
+        startSceneAllowed = false;
+
         Invoke("UnloadTransition", 2f);
+
+        yield return null;
         
     }
 

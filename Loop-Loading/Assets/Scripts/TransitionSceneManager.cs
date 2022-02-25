@@ -15,11 +15,15 @@ public class TransitionSceneManager : MonoBehaviour
     public static TransitionSceneManager Instance;
 
 
+    [SerializeField]
+    TitlecardUpdater titleCard;
+
     // Start is called before the first frame update
     void Awake()
     {
         Instance = this;
         FadeOut();
+
     }
 
     public void FadeOut()
@@ -29,7 +33,11 @@ public class TransitionSceneManager : MonoBehaviour
 
     public void FadeIn()
     {
+
+
+        titleCard.DeactivateTitleCard();
         animController.SetTrigger("fadein");
+
     }
 
 

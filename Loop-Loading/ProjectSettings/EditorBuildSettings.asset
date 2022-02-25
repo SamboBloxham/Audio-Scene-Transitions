@@ -21,14 +21,17 @@ EditorBuildSettings:
     path: Assets/Destroyed_city_FREE/Scenes/destroyed_city.unity
     guid: dab52a771d551ca40930496e8e13757a
   - enabled: 1
+    path: Assets/Scenes/Credits.unity
+    guid: 02ae71c333a12bd45a7d7ed48dc2dbe9
+  - enabled: 1
     path: Assets/Scenes/Transition Scene.unity
     guid: a76d825342a71f14ab083bd527a8d2ce
   - enabled: 0
     path: Assets/Scenes/Scene C.unity
     guid: dccb242743a2adc439d904c4472d826a
   - enabled: 0
-    path: Assets/DreamForestTree/DemoScene.unity
-    guid: 6dc68697d72e283438f1cd3bd3441279
+    path: 
+    guid: 00000000000000000000000000000000
   - enabled: 0
     path: Assets/Scenes/Scene D.unity
     guid: 3cc5f78975898984094d9f891fb3a0d4
